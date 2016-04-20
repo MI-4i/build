@@ -153,18 +153,18 @@ ifeq (,$(strip $(BUILD_FINGERPRINT)))
   endif
   BUILD_FINGERPRINT := $(PRODUCT_BRAND)/$(TARGET_VENDOR_PRODUCT_NAME)/$(TARGET_VENDOR_DEVICE_NAME):$(PLATFORM_VERSION)/$(BUILD_ID)/$(TARGET_VENDOR_RELEASE_BUILD_ID):$(TARGET_BUILD_VARIANT)/$(BUILD_VERSION_TAGS)
 endif
-ifneq ($(words $(BUILD_FINGERPRINT)),1)
-  $(error BUILD_FINGERPRINT cannot contain spaces: "$(BUILD_FINGERPRINT)")
-endif
+#ifneq ($(words $(BUILD_FINGERPRINT)),1)
+  #$(error BUILD_FINGERPRINT cannot contain spaces: "$(BUILD_FINGERPRINT)")
+#endif
 
 # The string used to uniquely identify the system build; used by the OTA server.
 # This purposefully excludes any product-specific variables.
 ifeq (,$(strip $(BUILD_THUMBPRINT)))
   BUILD_THUMBPRINT := $(PLATFORM_VERSION)/$(BUILD_ID)/$(BUILD_NUMBER):$(TARGET_BUILD_VARIANT)/$(BUILD_VERSION_TAGS)
 endif
-ifneq ($(words $(BUILD_THUMBPRINT)),1)
-  $(error BUILD_THUMBPRINT cannot contain spaces: "$(BUILD_THUMBPRINT)")
-endif
+#ifneq ($(words $(BUILD_THUMBPRINT)),1)
+#  $(error BUILD_THUMBPRINT cannot contain spaces: "$(BUILD_THUMBPRINT)")
+#endif
 
 KNOWN_OEM_THUMBPRINT_PROPERTIES := \
     ro.product.brand \
