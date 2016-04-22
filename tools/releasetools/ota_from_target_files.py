@@ -80,6 +80,10 @@ Usage:  ota_from_target_files [flags] input_target_files output_ota_package
       file-based OTA if the target_files is older and doesn't support
       block-based OTAs.
 
+  -z  Compress the block-based image using LZMA. Results in substantial
+      space reduction at the cost of longer compress/decompress time.
+      Requires the "backports.lzma" module to be installed.
+
   -b  (--binary)  <file>
       Use the given binary as the update-binary in the output package,
       instead of the binary in the build's target_files.  Use for
@@ -148,6 +152,7 @@ OPTIONS.full_bootloader = False
 OPTIONS.backuptool = False
 OPTIONS.override_device = 'auto'
 OPTIONS.override_prop = False
+OPTIONS.use_lzma = False
 
 def MostPopularKey(d, default):
   """Given a dict, return the key corresponding to the largest
@@ -637,13 +642,14 @@ else if get_stage("%(bcb_dev)s") == "3/3" then
   if HasVendorPartition(input_zip):
     system_progress -= 0.1
 
-  script.AppendExtra("if is_mounted(\"/data\") then")
-  script.ValidateSignatures("data")
-  script.AppendExtra("else")
-  script.Mount("/data")
-  script.ValidateSignatures("data")
-  script.Unmount("/data")
-  script.AppendExtra("endif;")
+  if not OPTIONS.wipe_user_data:
+    script.AppendExtra("if is_mounted(\"/data\") then")
+    script.ValidateSignatures("data")
+    script.AppendExtra("else")
+    script.Mount("/data")
+    script.ValidateSignatures("data")
+    script.Unmount("/data")
+    script.AppendExtra("endif;")
 
   if "selinux_fc" in OPTIONS.info_dict:
     WritePolicyConfig(OPTIONS.info_dict["selinux_fc"], output_zip)
@@ -660,7 +666,7 @@ else if get_stage("%(bcb_dev)s") == "3/3" then
     # writes incrementals to do it.
     system_tgt = GetImage("system", OPTIONS.input_tmp, OPTIONS.info_dict)
     system_tgt.ResetFileMap()
-    system_diff = common.BlockDifference("system", system_tgt, src=None)
+    system_diff = common.BlockDifference("system", system_tgt, src=None, use_lzma=OPTIONS.use_lzma)
     system_diff.WriteScript(script, output_zip)
   else:
     script.FormatPartition("/system")
@@ -693,7 +699,7 @@ else if get_stage("%(bcb_dev)s") == "3/3" then
     if block_based:
       vendor_tgt = GetImage("vendor", OPTIONS.input_tmp, OPTIONS.info_dict)
       vendor_tgt.ResetFileMap()
-      vendor_diff = common.BlockDifference("vendor", vendor_tgt)
+      vendor_diff = common.BlockDifference("vendor", vendor_tgt, use_lzma=OPTIONS.use_lzma)
       vendor_diff.WriteScript(script, output_zip)
     else:
       script.FormatPartition("/vendor")
@@ -868,7 +874,7 @@ def WriteBlockIncrementalOTAPackage(target_zip, source_zip, output_zip):
         OPTIONS.info_dict.get("blockimgdiff_versions", "1").split(","))
 
   system_diff = common.BlockDifference("system", system_tgt, system_src,
-                                       version=blockimgdiff_version)
+                                       version=blockimgdiff_version, use_lzma=OPTIONS.use_lzma)
 
   if HasVendorPartition(target_zip):
     if not HasVendorPartition(source_zip):
@@ -878,7 +884,7 @@ def WriteBlockIncrementalOTAPackage(target_zip, source_zip, output_zip):
     vendor_tgt = GetImage("vendor", OPTIONS.target_tmp,
                           OPTIONS.target_info_dict)
     vendor_diff = common.BlockDifference("vendor", vendor_tgt, vendor_src,
-                                         version=blockimgdiff_version)
+                                         version=blockimgdiff_version, use_lzma=OPTIONS.use_lzma)
   else:
     vendor_diff = None
 
@@ -1234,9 +1240,7 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
       source_zip=source_zip,
       source_version=source_version,
       target_zip=target_zip,
-      input_zip=target_zip,
       target_version=target_version,
-      input_version=target_version,
       output_zip=output_zip,
       script=script,
       metadata=metadata,
@@ -1635,12 +1639,16 @@ def main(argv):
       OPTIONS.override_device = a
     elif o in ("--override_prop",):
       OPTIONS.override_prop = bool(a.lower() == 'true')
+    elif o in ("-z", "--use_lzma"):
+      OPTIONS.use_lzma = True
+      # Import now, and bomb out if backports.lzma isn't installed
+      from backports import lzma
     else:
       return False
     return True
 
   args = common.ParseOptions(argv, __doc__,
-                             extra_opts="b:k:i:d:wne:t:a:2o:",
+                             extra_opts="b:k:i:d:wne:t:a:2o:z",
                              extra_long_opts=[
                                  "board_config=",
                                  "package_key=",
@@ -1662,7 +1670,8 @@ def main(argv):
                                  "stash_threshold=",
                                  "backup=",
                                  "override_device=",
-                                 "override_prop="
+                                 "override_prop=",
+                                 "use_lzma"
                              ], extra_option_handler=option_handler)
 
   if len(args) != 2:
