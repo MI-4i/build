@@ -624,7 +624,7 @@ class BlockImageDiff(object):
         open_patch = open
         new_file = ".new.dat"
 
-    with open_patch(prefix + new_file, "wb") as new_f:
+    with open(prefix + ".new.dat", "wb") as new_f:
       for xf in self.transfers:
         if xf.style == "zero":
           pass

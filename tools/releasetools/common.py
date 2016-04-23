@@ -273,9 +273,10 @@ def LoadRecoveryFSTab(read_helper, fstab_version, type):
           else:
             print("%s: unknown option \"%s\"" % (mount_point, i))
 
-      d[mount_point] = Partition(mount_point=mount_point, fs_type=pieces[1],
-                                 device=pieces[2], length=length,
-                                 device2=device2)
+      if not d.get(mount_point):
+          d[mount_point] = Partition(mount_point=mount_point, fs_type=pieces[1],
+                                     device=pieces[2], length=length,
+                                     device2=device2)
 
   elif fstab_version == 2:
     d = {}
@@ -311,9 +312,10 @@ def LoadRecoveryFSTab(read_helper, fstab_version, type):
           context = i
 
       mount_point = pieces[1]
-      d[mount_point] = Partition(mount_point=mount_point, fs_type=pieces[2],
-                                 device=pieces[0], length=length,
-                                 device2=None, context=context)
+      if not d.get(mount_point):
+          d[mount_point] = Partition(mount_point=mount_point, fs_type=pieces[2],
+                                     device=pieces[0], length=length,
+                                     device2=None, context=context)
 
   else:
     raise ValueError("Unknown fstab_version: \"%d\"" % (fstab_version,))
@@ -408,9 +410,8 @@ def BuildBootableImage(sourcedir, fs_config_file, info_dict=None):
 
     fn = os.path.join(sourcedir, "pagesize")
     if os.access(fn, os.F_OK):
-      kernel_pagesize=open(fn).read().rstrip("\n")
       cmd.append("--pagesize")
-      cmd.append(kernel_pagesize)
+      cmd.append(open(fn).read().rstrip("\n"))
 
     args = info_dict.get("mkbootimg_args", None)
     if args and args.strip():
@@ -1391,9 +1392,9 @@ class BlockDifference(object):
                  '{}.new.dat.xz'.format(self.path),
                  '{}.new.dat.xz'.format(self.partition))
     else:
-        ZipWrite(output_zip,
-                 '{}.new.dat'.format(self.path),
-                 '{}.new.dat'.format(self.partition))
+    ZipWrite(output_zip,
+             '{}.new.dat'.format(self.path),
+             '{}.new.dat'.format(self.partition))
     ZipWrite(output_zip,
              '{}.patch.dat'.format(self.path),
              '{}.patch.dat'.format(self.partition),
@@ -1405,10 +1406,10 @@ class BlockDifference(object):
                 '"{partition}.new.dat.xz", "{partition}.patch.dat");\n'.format(
                     device=self.device, partition=self.partition))
     else:
-        call = ('block_image_update("{device}", '
-                'package_extract_file("{partition}.transfer.list"), '
-                '"{partition}.new.dat", "{partition}.patch.dat");\n'.format(
-                    device=self.device, partition=self.partition))
+    call = ('block_image_update("{device}", '
+            'package_extract_file("{partition}.transfer.list"), '
+            '"{partition}.new.dat", "{partition}.patch.dat");\n'.format(
+                device=self.device, partition=self.partition))
     script.AppendExtra(script.WordWrap(call))
 
   def _HashBlocks(self, source, ranges): # pylint: disable=no-self-use
@@ -1543,27 +1544,18 @@ fi
        'bonus_args': bonus_args}
 
   # The install script location moved from /system/etc to /system/bin
-  # in the L release.  Parse init.*.rc files to find out where the
+  # in the L release.  Parse the init.rc file to find out where the
   # target-files expects it to be, and put it there.
   sh_location = "etc/install-recovery.sh"
-  found = False
-  init_rc_dir = os.path.join(input_dir, "BOOT", "RAMDISK")
-  init_rc_files = os.listdir(init_rc_dir)
-  for init_rc_file in init_rc_files:
-    if (not init_rc_file.startswith('init.') or
-        not init_rc_file.endswith('.rc')):
-      continue
-
-    with open(os.path.join(init_rc_dir, init_rc_file)) as f:
+  try:
+    with open(os.path.join(input_dir, "BOOT", "RAMDISK", "init.rc")) as f:
       for line in f:
         m = re.match(r"^service flash_recovery /system/(\S+)\s*$", line)
         if m:
           sh_location = m.group(1)
-          found = True
+          print("putting script in", sh_location)
           break
-    if found:
-        break
-
-  print("putting script in", sh_location)
+  except (OSError, IOError) as e:
+    print("failed to read init.rc: %s" % e)
 
   output_sink(sh_location, sh)

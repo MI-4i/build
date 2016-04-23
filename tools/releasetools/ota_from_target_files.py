@@ -835,7 +835,9 @@ def WriteBlockIncrementalOTAPackage(target_zip, source_zip, output_zip):
       source_zip=source_zip,
       source_version=source_version,
       target_zip=target_zip,
+      input_zip=target_zip,
       target_version=target_version,
+      input_version=target_version,
       output_zip=output_zip,
       script=script,
       metadata=metadata,
@@ -1240,7 +1242,9 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
       source_zip=source_zip,
       source_version=source_version,
       target_zip=target_zip,
+      input_zip=target_zip,
       target_version=target_version,
+      input_version=target_version,
       output_zip=output_zip,
       script=script,
       metadata=metadata,
@@ -1648,7 +1652,7 @@ def main(argv):
     return True
 
   args = common.ParseOptions(argv, __doc__,
-                             extra_opts="b:k:i:d:wne:t:a:2o:z",
+                             extra_opts="b:k:i:d:wne:t:a:2o:",
                              extra_long_opts=[
                                  "board_config=",
                                  "package_key=",
