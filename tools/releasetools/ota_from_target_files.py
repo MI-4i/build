@@ -629,6 +629,21 @@ else if get_stage("%(bcb_dev)s") == "3/3" then
   script.UnpackPackageDir("install", "/tmp/install")
   script.SetPermissionsRecursive("/tmp/install", 0, 0, 0o755, 0o644, None, None)
   script.SetPermissionsRecursive("/tmp/install/bin", 0, 0, 0o755, 0o755, None, None)
+  
+  script.Print("********************************");
+  script.Print("*  ____  _     ___ ____ ____   *");
+  script.Print("* | __ )| |   |_ _/ ___/ ___|  *");
+  script.Print("* |  _ \| |    | |\___ \___ \  *");
+  script.Print("* | |_) | |___ | | ___) |__) | *");
+  script.Print("* |____/|_____|___|____/____/  *");
+  script.Print("*                              *");
+  script.Print("********************************");                              
+  script.Print("                                    ");
+  builddate = GetBuildProp("ro.build.date", OPTIONS.info_dict)
+  device = GetBuildProp("ro.product.device", OPTIONS.info_dict)
+  script.Print("    Build date: %s"%(builddate));
+  script.Print("    Device: %s "%(device)); 
+  script.Print("******************************************");
 
   if OPTIONS.backuptool:
     script.Mount("/system")
